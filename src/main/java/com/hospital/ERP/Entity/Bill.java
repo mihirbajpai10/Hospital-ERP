@@ -1,6 +1,8 @@
 package com.hospital.ERP.Entity;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -10,11 +12,32 @@ public class Bill {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Long id;
 
-    private int patientId;
+    @ManyToOne
+    @JoinColumn(name = "patient_id")
+    private Users patient;
+    
     private double ConsultationFee;
     private double totalAmount;
+    private LocalDateTime paymentTime;
+
+    public enum PaymentStatus {
+        PAID,
+        PENDING,
+        FAILED
+    }
+    @Enumerated(EnumType.STRING)
+    private PaymentStatus paymentStatus;
+
+    public enum PaymentMode {
+        CASH,
+        CARD,
+        UPI
+    }
+    @Enumerated(EnumType.STRING)
+    private PaymentMode paymentMode;
+
 
     @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     private LocalDateTime createdAt;
@@ -25,29 +48,29 @@ public class Bill {
     public Bill() {
     }
 
-    public Bill(int id, int patientId, double consultationFee, double totalAmount, LocalDateTime createdAt, List<BillItem> items) {
+    public Bill(Long id, double consultationFee, double totalAmount, LocalDateTime createdAt, List<BillItem> items) {
         this.id = id;
-        this.patientId = patientId;
+
         ConsultationFee = consultationFee;
         this.totalAmount = totalAmount;
         this.createdAt = createdAt;
         this.items = items;
     }
 
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public int getPatientId() {
-        return patientId;
+    public Users getPatient() {
+        return patient;
     }
 
-    public void setPatientId(int patientId) {
-        this.patientId = patientId;
+    public void setPatient(Users patient) {
+        this.patient = patient;
     }
 
     public double getConsultationFee() {
@@ -64,6 +87,30 @@ public class Bill {
 
     public void setTotalAmount(double totalAmount) {
         this.totalAmount = totalAmount;
+    }
+
+    public LocalDateTime getPaymentTime() {
+        return paymentTime;
+    }
+
+    public void setPaymentTime(LocalDateTime paymentTime) {
+        this.paymentTime = paymentTime;
+    }
+
+    public PaymentStatus getPaymentStatus() {
+        return paymentStatus;
+    }
+
+    public void setPaymentStatus(PaymentStatus paymentStatus) {
+        this.paymentStatus = paymentStatus;
+    }
+
+    public PaymentMode getPaymentMode() {
+        return paymentMode;
+    }
+
+    public void setPaymentMode(PaymentMode paymentMode) {
+        this.paymentMode = paymentMode;
     }
 
     public LocalDateTime getCreatedAt() {

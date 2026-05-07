@@ -1,12 +1,10 @@
 package com.hospital.ERP.Services;
 
 import com.hospital.ERP.DTO.BillRequestDto;
-import com.hospital.ERP.Entity.Bill;
-import com.hospital.ERP.Entity.BillItem;
-import com.hospital.ERP.Entity.Doctor;
-import com.hospital.ERP.Entity.TestMaster;
+import com.hospital.ERP.Entity.*;
 import com.hospital.ERP.Repository.BillRepo;
 import com.hospital.ERP.Repository.TestMasterRepo;
+import com.hospital.ERP.Repository.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +21,16 @@ public class BillService {
     @Autowired
     TestMasterRepo masterRepo;
 
+    @Autowired
+    InvoiceService invoiceService;
+
+    @Autowired
+    EmailService emailService;
+
+    @Autowired
+    private UserRepo userRepo;
+
+
     public Bill createBill(BillRequestDto dto) {
 
         double ConsultationFee = 300;
@@ -33,9 +41,17 @@ public class BillService {
         double consultationFee = doctor.getConsultationFee();*/
 
         Bill bill = new Bill();
-        bill.setPatientId(dto.getPatientId());
+        /*bill.setPatientId(dto.getPatientId());*/
+
+        Users patient = userRepo.findById(dto.getPatientId())
+                .orElseThrow(() -> new RuntimeException("Patient not found"));
+
+        bill.setPatient(patient);
+
         bill.setConsultationFee(ConsultationFee);
         bill.setCreatedAt(LocalDateTime.now());
+        bill.setPaymentStatus(Bill.PaymentStatus.PENDING);
+
 
         List<BillItem> items = new ArrayList<>();
 
@@ -62,4 +78,32 @@ public class BillService {
         return billRepo.save(bill);
 
     }
+
+    public Bill payBill(Long billId, String mode) {
+
+        Bill bill = billRepo.findById(billId)
+                .orElseThrow(() -> new RuntimeException("Bill not found"));
+
+        if (bill.getPaymentStatus() == Bill.PaymentStatus.PAID) {
+            throw new RuntimeException("Bill already paid");
+        }
+
+        bill.setPaymentStatus(Bill.PaymentStatus.PAID);
+        bill.setPaymentMode(Bill.PaymentMode.valueOf(mode));
+        bill.setPaymentTime(LocalDateTime.now());
+
+        Bill savedBill = billRepo.save(bill);
+
+
+        Users patient = bill.getPatient();
+
+        String email = patient.getEmail();
+
+        byte[] pdf = invoiceService.generateInvoice(billId);
+
+        emailService.sendInvoiceEmail(email, pdf, billId);
+
+        return savedBill;
+    }
+    
 }
